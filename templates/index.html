@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TranscribeFlow Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        #loading {
+            display: none;
+            color: orange;
+            font-weight: bold;
+        }
+
+        .record-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+
+        .download-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .download-btn:hover {
+            background: #45a049;
+        }
+
+        button {
+            padding: 8px 12px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <h1 class="title">🎧 Transcribe & Summarize</h1>
+
+    <div class="card">
+
+        <!-- Upload Section -->
+        <h2>🎵 Upload Audio</h2>
+        <p>Select an audio file to upload and process</p>
+
+        <form method="POST" enctype="multipart/form-data" onsubmit="showLoading()">
+            <input type="file" name="audio" accept="audio/*" required>
+            <br><br>
+            <button type="submit">Upload & Process</button>
+        </form>
+
+        <p id="loading">⏳ Processing audio... Please wait.</p>
+
+        <!-- Recording Section -->
+        <div class="record-section">
+            <h2>🎙 Record Audio</h2>
+            <button id="startBtn">▶ Start Recording</button>
+            <button id="stopBtn" disabled>⏹ Stop Recording</button>
+
+            <!-- Hidden form for recorded audio -->
+            <form id="recordForm" method="POST" enctype="multipart/form-data">
+                <input type="file" id="recordedAudio" name="audio" hidden>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Transcript Result -->
+    {% if transcript %}
+    <div class="result-card transcript">
+        <h3>📝 Audio Transcript</h3>
+        <textarea readonly rows="10" style="width:100%;">{{ transcript }}</textarea>
+
+        {% if transcript_file %}
+        <a href="{{ url_for('download_file', filename=transcript_file) }}" 
+           class="download-btn">
+           ⬇ Download Transcript
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Summary Result -->
+    {% if summary %}
+    <div class="result-card summary">
+        <h3>📌 Summary</h3>
+        <textarea readonly rows="6" style="width:100%;">{{ summary }}</textarea>
+
+        {% if summary_file %}
+        <a href="{{ url_for('download_file', filename=summary_file) }}" 
+           class="download-btn">
+           ⬇ Download Summary
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <br>
+    <a class="logout" href="/logout">🚪 Logout</a>
+
+</div>
+
+<script>
+function showLoading() {
+    document.getElementById("loading").style.display = "block";
+}
+
+let mediaRecorder;
+let audioChunks = [];
+
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+
+startBtn.onclick = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.start();
+
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+
+        mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            const file = new File([audioBlob], "recorded_audio.wav");
+
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+
+            document.getElementById("recordedAudio").files = dataTransfer.files;
+
+            showLoading();
+            document.getElementById("recordForm").submit();
+        };
+
+    } catch (error) {
+        alert("Microphone access denied ❌");
+    }
+};
+
+stopBtn.onclick = () => {
+    mediaRecorder.stop();
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+};
+</script>
+
+</body>
+</html>
