@@ -1,21 +1,25 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 import os
+import json
 from werkzeug.utils import secure_filename
 
 from config import *
 from asr import transcribe_audio
 from summarizer import summarize_text
-from flask import send_from_directory
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+# Ensure upload folder exists
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+# ---------------- LOGIN ----------------
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -27,6 +31,7 @@ def login():
     return render_template("login.html")
 
 
+# ---------------- DASHBOARD ----------------
 @app.route("/index", methods=["GET", "POST"])
 def index():
     if not session.get("logged_in"):
@@ -34,8 +39,9 @@ def index():
 
     transcript = None
     summary = None
-    summary_filename = None
     transcript_filename = None
+    summary_filename = None
+    json_filename = None
 
     if request.method == "POST":
         file = request.files.get("audio")
@@ -48,21 +54,37 @@ def index():
             file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
             file.save(file_path)
 
+            # Process
             transcript = transcribe_audio(file_path)
             summary = summarize_text(transcript)
 
-            # Save transcript
-            transcript_file_path = file_path + "_transcript.txt"
-            with open(transcript_file_path, "w", encoding="utf-8") as f:
+            base_name = os.path.splitext(filename)[0]
+
+            # Save Transcript
+            transcript_filename = f"{base_name}_transcript.txt"
+            transcript_path = os.path.join(app.config["UPLOAD_FOLDER"], transcript_filename)
+
+            with open(transcript_path, "w", encoding="utf-8") as f:
                 f.write(transcript)
 
-            # Save summary
-            summary_file_path = file_path + "_summary.txt"
-            with open(summary_file_path, "w", encoding="utf-8") as f:
+            # Save Summary
+            summary_filename = f"{base_name}_summary.txt"
+            summary_path = os.path.join(app.config["UPLOAD_FOLDER"], summary_filename)
+
+            with open(summary_path, "w", encoding="utf-8") as f:
                 f.write(summary)
 
-            summary_filename = os.path.basename(summary_file_path)
-            transcript_filename = os.path.basename(transcript_file_path)
+            # Save JSON (NEW)
+            json_filename = f"{base_name}_result.json"
+            json_path = os.path.join(app.config["UPLOAD_FOLDER"], json_filename)
+
+            json_data = {
+                "transcript": transcript,
+                "summary": summary
+            }
+
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(json_data, f, indent=4)
 
         else:
             return "Invalid file type ❌"
@@ -71,9 +93,13 @@ def index():
         "index.html",
         transcript=transcript,
         summary=summary,
+        transcript_file=transcript_filename,
         summary_file=summary_filename,
-        transcript_file=transcript_filename
+        json_file=json_filename
     )
+
+
+# ---------------- DOWNLOAD ----------------
 @app.route("/download/<filename>")
 def download_file(filename):
     return send_from_directory(
@@ -83,7 +109,7 @@ def download_file(filename):
     )
 
 
-# JSON API endpoint (Milestone requirement)
+# ---------------- JSON API ----------------
 @app.route("/upload", methods=["POST"])
 def upload_api():
     file = request.files.get("audio")
@@ -104,6 +130,7 @@ def upload_api():
     })
 
 
+# ---------------- LOGOUT ----------------
 @app.route("/logout")
 def logout():
     session.pop("logged_in", None)
