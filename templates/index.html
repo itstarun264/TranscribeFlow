@@ -1,212 +1,202 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>TranscribeFlow Dashboard</title>
+<meta charset="UTF-8">
+<title>TranscribeFlow Dashboard</title>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            margin: 0;
-            padding: 0;
-        }
+<style>
 
-        .container {
-            width: 700px;
-            margin: 40px auto;
-        }
+body{
+font-family: Arial;
+background: linear-gradient(135deg,#667eea,#764ba2);
+margin:0;
+padding:0;
+}
 
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-            margin-bottom: 20px;
-        }
+.container{
+width:700px;
+margin:40px auto;
+}
 
-        h1 {
-            text-align: center;
-            color: white;
-        }
+.card{
+background:white;
+padding:25px;
+border-radius:12px;
+box-shadow:0 8px 20px rgba(0,0,0,0.2);
+margin-bottom:20px;
+}
 
-        h2, h3 {
-            margin-top: 0;
-        }
+h1{
+text-align:center;
+color:white;
+}
 
-        input[type="file"] {
-            width: 100%;
-            padding: 8px;
-        }
+textarea{
+width:100%;
+border-radius:6px;
+padding:10px;
+border:1px solid #ccc;
+}
 
-        button {
-            padding: 10px 15px;
-            border: none;
-            background: #667eea;
-            color: white;
-            border-radius: 6px;
-            cursor: pointer;
-        }
+button{
+padding:10px 15px;
+border:none;
+background:#667eea;
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
 
-        button:hover {
-            background: #5563d1;
-        }
+button:hover{
+background:#5563d1;
+}
 
-        textarea {
-            width: 100%;
-            border-radius: 6px;
-            padding: 10px;
-            border: 1px solid #ccc;
-        }
+.download-btn{
+display:inline-block;
+margin-top:10px;
+padding:8px 12px;
+background:#4CAF50;
+color:white;
+text-decoration:none;
+border-radius:6px;
+}
 
-        .download-btn {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 8px 12px;
-            background: #4CAF50;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-        }
+.download-btn:hover{
+background:#45a049;
+}
 
-        .download-btn:hover {
-            background: #45a049;
-        }
+#loading{
+display:none;
+color:orange;
+font-weight:bold;
+}
 
-        #loading {
-            display: none;
-            color: orange;
-            font-weight: bold;
-        }
+.logout{
+display:block;
+text-align:center;
+color:white;
+font-weight:bold;
+margin-top:10px;
+text-decoration:none;
+}
 
-        .logout {
-            display: block;
-            text-align: center;
-            color: white;
-            text-decoration: none;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-
-        .logout:hover {
-            text-decoration: underline;
-        }
-    </style>
+</style>
 </head>
+
 <body>
 
 <h1>🎧 Transcribe & Summarize</h1>
 
 <div class="container">
 
-    <!-- Upload Card -->
-    <div class="card">
+<div class="card">
 
-        <h2>🎵 Upload Audio</h2>
+<h2>🎵 Upload Audio</h2>
 
-        <form method="POST" enctype="multipart/form-data" onsubmit="showLoading()">
-            <input type="file" name="audio" accept="audio/*" required>
-            <br><br>
-            <button type="submit">Upload & Process</button>
-        </form>
+<form method="POST" enctype="multipart/form-data" onsubmit="showLoading()">
+<input type="file" name="audio" accept="audio/*" required>
+<br><br>
+<button type="submit">Upload & Process</button>
+</form>
 
-        <p id="loading">⏳ Processing audio... Please wait.</p>
+<p id="loading">⏳ Processing audio... Please wait.</p>
 
-        <hr>
+<hr>
 
-        <h2>🎙 Record Audio</h2>
-        <button id="startBtn">▶ Start Recording</button>
-        <button id="stopBtn" disabled>⏹ Stop Recording</button>
+<h2>🎙 Record Audio</h2>
 
-        <form id="recordForm" method="POST" enctype="multipart/form-data">
-            <input type="file" id="recordedAudio" name="audio" hidden>
-        </form>
+<button id="startBtn">▶ Start Recording</button>
+<button id="stopBtn" disabled>⏹ Stop Recording</button>
 
-    </div>
+<form id="recordForm" method="POST" enctype="multipart/form-data">
+<input type="file" id="recordedAudio" name="audio" hidden>
+</form>
 
+</div>
 
-    {% if transcript %}
-    <div class="card">
-        <h3>📝 Transcript</h3>
-        <textarea rows="10" readonly>{{ transcript }}</textarea>
+{% if transcript %}
+<div class="card">
+<h3>📝 Transcript</h3>
+<textarea rows="10" readonly>{{ transcript }}</textarea>
+</div>
+{% endif %}
 
-        {% if transcript_file %}
-        <a href="{{ url_for('download_file', filename=transcript_file) }}" class="download-btn">
-            ⬇ Download Transcript
-        </a>
-        {% endif %}
-    </div>
-    {% endif %}
+{% if summary %}
+<div class="card">
+<h3>📌 Summary</h3>
+<textarea rows="6" readonly>{{ summary }}</textarea>
 
+{% if combined_file %}
+<a href="{{ url_for('download_file', filename=combined_file) }}" class="download-btn">
+⬇ Download Transcript + Summary (TXT)
+</a>
+{% endif %}
 
-    {% if summary %}
-    <div class="card">
-        <h3>📌 Summary</h3>
-        <textarea rows="6" readonly>{{ summary }}</textarea>
+{% if json_file %}
+<br><br>
+<a href="{{ url_for('download_file', filename=json_file) }}" class="download-btn">
+⬇ Download JSON
+</a>
+{% endif %}
 
-        {% if summary_file %}
-        <a href="{{ url_for('download_file', filename=summary_file) }}" class="download-btn">
-            ⬇ Download Summary
-        </a>
-        {% endif %}
-
-        {% if json_file %}
-        <br><br>
-        <a href="{{ url_for('download_file', filename=json_file) }}" class="download-btn">
-            ⬇ Download JSON (Transcript + Summary)
-        </a>
-        {% endif %}
-    </div>
-    {% endif %}
+</div>
+{% endif %}
 
 </div>
 
 <a class="logout" href="/logout">🚪 Logout</a>
 
 <script>
-function showLoading() {
-    document.getElementById("loading").style.display = "block";
+
+function showLoading(){
+document.getElementById("loading").style.display="block";
 }
 
 let mediaRecorder;
-let audioChunks = [];
+let audioChunks=[];
 
-const startBtn = document.getElementById("startBtn");
-const stopBtn = document.getElementById("stopBtn");
+const startBtn=document.getElementById("startBtn");
+const stopBtn=document.getElementById("stopBtn");
 
-startBtn.onclick = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+startBtn.onclick=async()=>{
 
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
+const stream=await navigator.mediaDevices.getUserMedia({audio:true});
 
-    mediaRecorder.start();
-    startBtn.disabled = true;
-    stopBtn.disabled = false;
+mediaRecorder=new MediaRecorder(stream);
+audioChunks=[];
 
-    mediaRecorder.ondataavailable = event => {
-        audioChunks.push(event.data);
-    };
+mediaRecorder.start();
 
-    mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-        const file = new File([audioBlob], "recorded_audio.wav");
+startBtn.disabled=true;
+stopBtn.disabled=false;
 
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(file);
-
-        document.getElementById("recordedAudio").files = dataTransfer.files;
-
-        showLoading();
-        document.getElementById("recordForm").submit();
-    };
+mediaRecorder.ondataavailable=e=>{
+audioChunks.push(e.data);
 };
 
-stopBtn.onclick = () => {
-    mediaRecorder.stop();
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
+mediaRecorder.onstop=()=>{
+
+const blob=new Blob(audioChunks,{type:"audio/wav"});
+const file=new File([blob],"recorded_audio.wav");
+
+const dt=new DataTransfer();
+dt.items.add(file);
+
+document.getElementById("recordedAudio").files=dt.files;
+
+showLoading();
+document.getElementById("recordForm").submit();
+
 };
+
+};
+
+stopBtn.onclick=()=>{
+mediaRecorder.stop();
+startBtn.disabled=false;
+stopBtn.disabled=true;
+};
+
 </script>
 
 </body>

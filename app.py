@@ -39,8 +39,7 @@ def index():
 
     transcript = None
     summary = None
-    transcript_filename = None
-    summary_filename = None
+    combined_filename = None
     json_filename = None
 
     if request.method == "POST":
@@ -54,27 +53,25 @@ def index():
             file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
             file.save(file_path)
 
-            # Process
+            # Process audio
             transcript = transcribe_audio(file_path)
             summary = summarize_text(transcript)
 
             base_name = os.path.splitext(filename)[0]
 
-            # Save Transcript
-            transcript_filename = f"{base_name}_transcript.txt"
-            transcript_path = os.path.join(app.config["UPLOAD_FOLDER"], transcript_filename)
+            # -------- COMBINED TXT FILE --------
+            combined_filename = f"{base_name}_result.txt"
+            combined_path = os.path.join(app.config["UPLOAD_FOLDER"], combined_filename)
 
-            with open(transcript_path, "w", encoding="utf-8") as f:
+            with open(combined_path, "w", encoding="utf-8") as f:
+                f.write("TRANSCRIPT\n")
+                f.write("--------------------------------------------------\n")
                 f.write(transcript)
-
-            # Save Summary
-            summary_filename = f"{base_name}_summary.txt"
-            summary_path = os.path.join(app.config["UPLOAD_FOLDER"], summary_filename)
-
-            with open(summary_path, "w", encoding="utf-8") as f:
+                f.write("\n\nSUMMARY\n")
+                f.write("--------------------------------------------------\n")
                 f.write(summary)
 
-            # Save JSON (NEW)
+            # -------- JSON FILE --------
             json_filename = f"{base_name}_result.json"
             json_path = os.path.join(app.config["UPLOAD_FOLDER"], json_filename)
 
@@ -93,8 +90,7 @@ def index():
         "index.html",
         transcript=transcript,
         summary=summary,
-        transcript_file=transcript_filename,
-        summary_file=summary_filename,
+        combined_file=combined_filename,
         json_file=json_filename
     )
 
