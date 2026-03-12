@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TranscribeFlow Dashboard</title>
+
+<style>
+
+body{
+font-family: Arial;
+background: linear-gradient(135deg,#667eea,#764ba2);
+margin:0;
+padding:0;
+}
+
+.container{
+width:700px;
+margin:40px auto;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:12px;
+box-shadow:0 8px 20px rgba(0,0,0,0.2);
+margin-bottom:20px;
+}
+
+h1{
+text-align:center;
+color:white;
+}
+
+textarea{
+width:100%;
+border-radius:6px;
+padding:10px;
+border:1px solid #ccc;
+}
+
+button{
+padding:10px 15px;
+border:none;
+background:#667eea;
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+button:hover{
+background:#5563d1;
+}
+
+.download-btn{
+display:inline-block;
+margin-top:10px;
+padding:8px 12px;
+background:#4CAF50;
+color:white;
+text-decoration:none;
+border-radius:6px;
+}
+
+.download-btn:hover{
+background:#45a049;
+}
+
+#loading{
+display:none;
+color:orange;
+font-weight:bold;
+}
+
+.logout{
+display:block;
+text-align:center;
+color:white;
+font-weight:bold;
+margin-top:10px;
+text-decoration:none;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>🎧 Transcribe & Summarize</h1>
+
+<div class="container">
+
+<div class="card">
+
+<h2>🎵 Upload Audio</h2>
+
+<form method="POST" enctype="multipart/form-data" onsubmit="showLoading()">
+<input type="file" name="audio" accept="audio/*" required>
+<br><br>
+<button type="submit">Upload & Process</button>
+</form>
+
+<p id="loading">⏳ Processing audio... Please wait.</p>
+
+<hr>
+
+<h2>🎙 Record Audio</h2>
+
+<button id="startBtn">▶ Start Recording</button>
+<button id="stopBtn" disabled>⏹ Stop Recording</button>
+
+<form id="recordForm" method="POST" enctype="multipart/form-data">
+<input type="file" id="recordedAudio" name="audio" hidden>
+</form>
+
+</div>
+
+{% if transcript %}
+<div class="card">
+<h3>📝 Transcript</h3>
+<textarea rows="10" readonly>{{ transcript }}</textarea>
+</div>
+{% endif %}
+
+{% if summary %}
+<div class="card">
+<h3>📌 Summary</h3>
+<textarea rows="6" readonly>{{ summary }}</textarea>
+
+{% if combined_file %}
+<a href="{{ url_for('download_file', filename=combined_file) }}" class="download-btn">
+⬇ Download Transcript + Summary (TXT)
+</a>
+{% endif %}
+
+{% if json_file %}
+<br><br>
+<a href="{{ url_for('download_file', filename=json_file) }}" class="download-btn">
+⬇ Download JSON
+</a>
+{% endif %}
+
+</div>
+{% endif %}
+
+</div>
+
+<a class="logout" href="/logout">🚪 Logout</a>
+
+<script>
+
+function showLoading(){
+document.getElementById("loading").style.display="block";
+}
+
+let mediaRecorder;
+let audioChunks=[];
+
+const startBtn=document.getElementById("startBtn");
+const stopBtn=document.getElementById("stopBtn");
+
+startBtn.onclick=async()=>{
+
+const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+
+mediaRecorder=new MediaRecorder(stream);
+audioChunks=[];
+
+mediaRecorder.start();
+
+startBtn.disabled=true;
+stopBtn.disabled=false;
+
+mediaRecorder.ondataavailable=e=>{
+audioChunks.push(e.data);
+};
+
+mediaRecorder.onstop=()=>{
+
+const blob=new Blob(audioChunks,{type:"audio/wav"});
+const file=new File([blob],"recorded_audio.wav");
+
+const dt=new DataTransfer();
+dt.items.add(file);
+
+document.getElementById("recordedAudio").files=dt.files;
+
+showLoading();
+document.getElementById("recordForm").submit();
+
+};
+
+};
+
+stopBtn.onclick=()=>{
+mediaRecorder.stop();
+startBtn.disabled=false;
+stopBtn.disabled=true;
+};
+
+</script>
+
+</body>
+</html>
